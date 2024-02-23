@@ -135,4 +135,52 @@ final class GRDBMacrosTests: XCTestCase {
       """
     }
   }
+
+  func testMacroForClass() throws {
+    assertMacro {
+      """
+      @DatabaseRecord
+      class Author {
+        var id: Int64?
+        var countryCode: String?
+      }
+      """
+    } expansion: {
+      """
+      class Author {
+        var id: Int64?
+        var countryCode: String?
+
+        init(row: GRDB.Row) {
+           self.id = row[Columns.id]
+           self.countryCode = row[Columns.countryCode]
+        }
+      }
+
+      extension Author: GRDB.FetchableRecord {
+      }
+
+      extension Author: GRDB.PersistableRecord {
+        func encode(to container: inout GRDB.PersistenceContainer) throws {
+           container[Columns.id] = id
+           container[Columns.countryCode] = countryCode
+        }
+      }
+
+      extension Author {
+        enum Columns {
+          static let id = GRDB.Column("id")
+          static let countryCode = GRDB.Column("countryCode")
+        }
+      }
+
+      extension Author {
+        static let databaseSelection: [any GRDB.SQLSelectable] = [
+          Columns.id,
+          Columns.countryCode
+        ]
+      }
+      """
+    }
+  }
 }
