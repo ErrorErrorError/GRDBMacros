@@ -58,6 +58,7 @@ extension DatabaseRecordMacro: ExtensionMacro {
     }
 
     let isPublic = declaration.modifiers.map(\.name.tokenKind).contains(.keyword(.public))
+    let isClass = declaration.is(ClassDeclSyntax.self)
 
     let access = if isPublic {
       TokenSyntax(.keyword(.public), trailingTrivia: [.spaces(1)], presence: .present)
@@ -72,6 +73,7 @@ extension DatabaseRecordMacro: ExtensionMacro {
 
     let needsExtImpl: [ExtensionWithBody] = [
       .init(name: fetchableType) {
+        isClass ? "" :
         """
         \(raw: access)init(row: \(raw: qualified("Row"))) {
         \(raw: args.map(\.fetchableDecl.trimmedDescription).joined(separator: "\n"))
@@ -123,6 +125,50 @@ extension DatabaseRecordMacro: ExtensionMacro {
       .compactMap { $0 }
 
     return needsExtImpl.map { $0.decl(for: type.trimmed) } + extensions
+  }
+}
+
+extension DatabaseRecordMacro: MemberMacro {
+  static func expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    if declaration.is(StructDeclSyntax.self) {
+      return []
+    }
+    guard let declaration = declaration.as(ClassDeclSyntax.self) else {
+      throw Error.onlyClassOrStructs
+    }
+
+    let isPublic = declaration.modifiers.map(\.name.tokenKind).contains(.keyword(.public))
+
+    let access = if isPublic {
+      TokenSyntax(.keyword(.public), trailingTrivia: [.spaces(1)], presence: .present)
+    } else {
+      TokenSyntax(.stringSegment(""), presence: .missing)
+    }
+
+    let inherited = declaration.inheritanceClause?.inheritedTypes ?? []
+    
+    if inherited.map(\.type).contains(where: {
+      $0.trimmedDescription == fetchableType ||
+      $0.trimmedDescription == qualified(DeclSyntax(stringLiteral: fetchableType)).trimmedDescription
+    }) {
+      return []
+    }
+
+    let args: [MemberColumn] = declaration.memberBlock.members
+      .compactMap(MemberColumn.init)
+
+    return [
+        """
+        \(raw: access)init(row: \(raw: qualified("Row"))) {
+        \(raw: args.map(\.fetchableDecl.trimmedDescription).joined(separator: "\n"))
+        }
+        """
+    ]
   }
 }
 
