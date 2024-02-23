@@ -164,7 +164,7 @@ extension DatabaseRecordMacro: MemberMacro {
 
     return [
         """
-        \(raw: access)init(row: \(raw: qualified("Row"))) {
+        \(raw: access)required init(row: \(raw: qualified("Row"))) {
         \(raw: args.map(\.fetchableDecl.trimmedDescription).joined(separator: "\n"))
         }
         """

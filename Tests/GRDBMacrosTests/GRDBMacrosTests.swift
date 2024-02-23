@@ -151,7 +151,7 @@ final class GRDBMacrosTests: XCTestCase {
         var id: Int64?
         var countryCode: String?
 
-        init(row: GRDB.Row) {
+        required init(row: GRDB.Row) {
            self.id = row[Columns.id]
            self.countryCode = row[Columns.countryCode]
         }
