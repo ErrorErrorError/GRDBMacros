@@ -13,6 +13,10 @@ import GRDB
   conformances: FetchableRecord, PersistableRecord,
   names: named(init(row:)), named(encode(to:)), named(Columns), named(databaseSelection)
 )
+@attached(
+  member,
+  names: named(init(row:))
+)
 public macro DatabaseRecord() = #externalMacro(module: "GRDBMacrosPlugin", type: "DatabaseRecordMacro")
 
 @attached(peer)
